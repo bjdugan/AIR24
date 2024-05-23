@@ -54,30 +54,23 @@ population <- tibble(
   memdb_frame()
 ```
 
-```{r, echo=FALSE, include=FALSE, results='asis'}
-cat("_This template provides a general process narrative framework. Use or discard sections as needed. Only mock data are used.\nNotes to user are presented in these chunks in italics._")
-```
+_This template provides a general process narrative framework. Use or discard sections as needed. Only mock data are used. Notes to user are presented in these chunks in italics._
+
 
 ## Purpose
-```{r, echo=FALSE, results='asis'}
-cat("_What is the goal? This section describes the general aims of the task._")
-```
+_What is the goal? This section describes the general aims of the task._
 
 To construct statistical weights for use in reporting NSSE survey responses to institutions.
 
 ## Background
-```{r, echo=FALSE, results='asis'}
-cat("_Why is this done? This section describes the history or broader context of the task._")
-```
+_Why is this done? This section describes the history or broader context of the task._
 
 As part of each survey administration, NSSE collects population files from institutions containing student email addresses and variables used in statistical weighting to adjust for known differences in engagement and response rates: enrollment status (full- or part-time), gender (male, female, another e.g. non-binary, unknown), and class level (first-year or senior). 
 
 Each student's response to the survey is assigned a disposition code (American Association for Public Opinion Research, 2023) such as "Complete," "Partial," "Explicit refusal," or "Logged on to the survey, did not complete any items," that determine inclusion in reports and in constructing sample weights.
 
 ## Scope
-```{r, echo=FALSE, results='asis'}
-cat("_What does this affect? Who should do it? This section describes which individuals or units are involved, and where it may fit into broader processes if not self-contained._")
-```
+_What does this affect? Who should do it? This section describes which individuals or units are involved, and where it may fit into broader processes if not self-contained._
 
 Lead: Brendan Dugan  
 Support: ...  
@@ -85,16 +78,12 @@ Support: ...
 As they feature weights or weighted statistics, the tables processed here affect final dataset delivery and report creation.  
 
 ### Timeline
-```{r, echo=FALSE, results='asis'}
-cat("_When should this occur? This section describes timelines, due dates, or durations in short._")
-```
+_When should this occur? This section describes timelines, due dates, or durations in short._
 
 Generally this occurs in late May or early June following the closing of the survey and the Report Form.
 
 ### Definitions
-```{r, echo=FALSE, results='asis'}
-cat("_What is the meaning of terms used? This section describes terminology and dataset variables as needed._")
-```
+_What is the meaning of terms used? This section describes terminology and dataset variables as needed._
 
  - **population**: All first-year and senior bachelor's-degree-seeking students, regardless of age, residence, or enrollment status      
  - **sample**: All census- or randomly-sampled students, often the entire sample (~99.9% are census-sampled)  
@@ -102,15 +91,62 @@ cat("_What is the meaning of terms used? This section describes terminology and 
  - **dispositions**: type of response to survey based on AAPOR's framework  
 
 ## Process
-```{r, echo=FALSE, results='asis'}
-cat("_What does this task consist of?_")
-```
+_What does this task consist of?_
 
 Data are extracted from the database table `population` which features response disposition and student demographic information. Weights are computed by class, gender, and enrollment status from their respective representation in the population and respondents. 
 
 ### Extract Data
-Extract, apply common filters, further subset to sample and respondents, then combine in one table.
-```{r, echo=TRUE}
+_While copying code isn't ideal, it can sometimes be a useful illlustration to break apart longer pipes in unevaluated chunks, explain each, and then compile the entire pipe later._
+
+Extract, apply common filters, further subset to sample and respondents, then combine in one table.  
+
+Since each level of aggregation (population > sample > respondents) draw from the same table, it can be extracted once, with common filters and recodes applied
+```{r, echo=TRUE, eval=FALSE}
+dispositions <- select(population, unitid, class, enrollment,
+                gender, dispoLabel, sample) |>
+  filter( # common criteria
+    !is.na(dispoLabel),
+    sample != "Ineligible for sampling",
+    !is.na(enrollment), !is.na(gender),
+    class %in% c("First-year", "Senior"), 
+    dispoLabel %in% c("Complete", "Partial", "Explicit Refusal", 
+                      "Logged on to survey, did not complete any items", 
+                      "Unavailable during field period", # v rare
+                      "Break-off", "Not contacted", "Nothing returned") ) |> 
+  mutate(class = if_else(class == "First-year" ~ "fy", class == "Senior" ~ "sr"))
+```
+Then repeated into a list of dataframes
+```{r, echo=TRUE, eval=FALSE}
+dispositions |> 
+  (\(x) replicate(3, x, simplify = FALSE))() |> 
+  set_names(c("pop", "sample", "resp"))
+
+```
+Then subsequent filters applied
+```{r, echo=TRUE, eval=FALSE}
+  # apply sample restrictions (census or random)
+  modify_at("sample", filter, 
+            sample %in% c("Census", "Random sample", "Random oversample")) |>
+  # keep only respondents
+  modify_at("resp", filter, 
+            dispoLabel %in% c("Complete", "Partial"),
+            sample %in% c("Census", "Random sample", "Random oversample")) |> 
+```
+Before summarizing and reducing back into a single table with columns representing counts for each level.
+```{r, echo=TRUE, eval=FALSE}
+dispositions |> 
+  map(group_by, unitid) |> 
+  map(count, class, enrollment, gender) |> 
+  imap(mutate) |> 
+  map(pivot_wider, names_from = last_col(), values_from = n) |> 
+  reduce(left_join, by = c("unitid", "class", "enrollment", "gender")) |> 
+  replace_na(list(pop = 0, sample = 0, resp = 0)) |> 
+  arrange(unitid, class, enrollment, desc(gender)) |> 
+  collect()
+```
+
+```{r, echo=FALSE}
+# here is the whole pipe
 # makes heavy use of purrr's list funs but could be refactored for nest()'d df
 dispositions <- select(population, unitid, class, enrollment,
                 gender, dispoLabel, sample) |>
@@ -205,9 +241,7 @@ saveRDS(
 ```
 
 ## Resources
-```{r, echo=FALSE, results='asis'}
-cat("_What resources, definitions, would help here?_")
-```
+_What resources, definitions, would help here?_
  
  - The American Association for Public Opinion Research. _2023 Standard Definitions:
 Final Dispositions of Case Codes and Outcome Rates for Surveys. 10th edition._ AAPOR. Retrieved from https://aapor.org/wp-content/uploads/2024/03/Standards-Definitions-10th-edition.pdf  

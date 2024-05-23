@@ -2,7 +2,7 @@
 Session files for Association for Institutional Research annual conference, 2024.
 
 ## Leveraging R Markdown for Process Narratives
-See `process narrative example.rmd` for an annotated template.
+See `process narrative example.rmd` for an annotated template and the `.md` file to see what it will look like (it renders best as HTML).
 
 ### Abstract
 R Markdown (RMD), while often used for data analysis, can be employed to create detailed narratives for ETL processes, to supplement data dictionaries, and in general to help analysts share and document their work. This poster will describe the process of consolidating disparate SQL queries and SPSS scripts used for creating survey weights and response rates into an R Markdown document with annotations describing each step in detail, and highlight advantages of this approach. 

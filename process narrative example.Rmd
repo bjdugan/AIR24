@@ -1,0 +1,220 @@
+---
+title: "Process Narrative Example"
+author: "Brendan Dugan"
+date: "2024-05-21"
+output: 
+  html_document:
+    theme: paper
+    css: styles.css
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(dplyr)
+library(knitr)
+library(DBI)
+library(odbc)
+library(dbplyr)
+library(tibble)
+library(purrr)
+library(tidyr)
+
+dispo_codes <- tibble(
+  dispoCode = c(1.1000, 1.2000, 2.1110, 2.1121, 2.1200, 2.600, 2.3100, 3.11,
+                3.19, 3.3, 4.1, 4.81),
+  dispoLabel = c("Complete", "Partial", "Explicit refusal", 
+                 "Logged on to survey, did not complete any items", 
+                 "Break-off", "Unavailable during field period", "Dead", 
+                 "Not contacted", "Nothing returned", "Undeliverable",
+                 "Out of sample", "Duplicate Listing"), 
+  # from 2023 dispo
+  n = c(992474, 318930, 46047, 88567, 249, 2, 1, 288, 3981337, 18498, 642904, 18),
+  p = c(0.1629861, 0.05237535, 0.007561934, 0.01454466, 4.08913e-05, 3.284442e-07,
+        1.642221e-07, 4.729596e-05, 0.6538235, 0.00303778, 0.105579, 2.955998e-06)
+  )
+
+n <- 5000
+# set.seed() if you want exactly the same results each time
+population <- tibble(
+  unitid = sample(c(123456, 456789, 987654, 654321), size = n, replace = TRUE),
+  dispoCode = sample(dispo_codes$dispoCode, size = n, replace = TRUE, 
+                     prob = dispo_codes$p),
+  sample = sample(c("Census", "Random sample", "Random oversample"), size = n, 
+                  replace = TRUE, prob = c(.9, .05, .05)),
+  class = sample(c("First-year", "Senior"), size = n, replace = TRUE),
+  enrollment = sample(c("Full-time", "Part-time"), size = n, replace = TRUE, 
+                      prob = c(.9, .1)),
+  gender = sample(c("Male", "Female", "Unknown", "Another sex"), size = n, 
+                  replace = TRUE, prob = c(.3, .6, .05, .05)) ) |> 
+  left_join(
+    select(dispo_codes, dispoCode, dispoLabel),
+    by = c("dispoCode") ) |> 
+  memdb_frame()
+```
+
+```{r, echo=FALSE, include=FALSE, results='asis'}
+cat("_This template provides a general process narrative framework. Use or discard sections as needed. Only mock data are used.\nNotes to user are presented in these chunks in italics._")
+```
+
+## Purpose
+```{r, echo=FALSE, results='asis'}
+cat("_What is the goal? This section describes the general aims of the task._")
+```
+
+To construct statistical weights for use in reporting NSSE survey responses to institutions.
+
+## Background
+```{r, echo=FALSE, results='asis'}
+cat("_Why is this done? This section describes the history or broader context of the task._")
+```
+
+As part of each survey administration, NSSE collects population files from institutions containing student email addresses and variables used in statistical weighting to adjust for known differences in engagement and response rates: enrollment status (full- or part-time), gender (male, female, another e.g. non-binary, unknown), and class level (first-year or senior). 
+
+Each student's response to the survey is assigned a disposition code (American Association for Public Opinion Research, 2023) such as "Complete," "Partial," "Explicit refusal," or "Logged on to the survey, did not complete any items," that determine inclusion in reports and in constructing sample weights.
+
+## Scope
+```{r, echo=FALSE, results='asis'}
+cat("_What does this affect? Who should do it? This section describes which individuals or units are involved, and where it may fit into broader processes if not self-contained._")
+```
+
+Lead: Brendan Dugan  
+Support: ...  
+
+As they feature weights or weighted statistics, the tables processed here affect final dataset delivery and report creation.  
+
+### Timeline
+```{r, echo=FALSE, results='asis'}
+cat("_When should this occur? This section describes timelines, due dates, or durations in short._")
+```
+
+Generally this occurs in late May or early June following the closing of the survey and the Report Form.
+
+### Definitions
+```{r, echo=FALSE, results='asis'}
+cat("_What is the meaning of terms used? This section describes terminology and dataset variables as needed._")
+```
+
+ - **population**: All first-year and senior bachelor's-degree-seeking students, regardless of age, residence, or enrollment status      
+ - **sample**: All census- or randomly-sampled students, often the entire sample (~99.9% are census-sampled)  
+ - **respondents**: all sample students with complete or partial dispositions  
+ - **dispositions**: type of response to survey based on AAPOR's framework  
+
+## Process
+```{r, echo=FALSE, results='asis'}
+cat("_What does this task consist of?_")
+```
+
+Data are extracted from the database table `population` which features response disposition and student demographic information. Weights are computed by class, gender, and enrollment status from their respective representation in the population and respondents. 
+
+### Extract Data
+Extract, apply common filters, further subset to sample and respondents, then combine in one table.
+```{r, echo=TRUE}
+# makes heavy use of purrr's list funs but could be refactored for nest()'d df
+dispositions <- select(population, unitid, class, enrollment,
+                gender, dispoLabel, sample) |>
+  filter( # common criteria
+    !is.na(dispoLabel),
+    sample != "Ineligible for sampling",
+    !is.na(enrollment), !is.na(gender),
+    class %in% c("First-year", "Senior"), 
+    dispoLabel %in% c("Complete", "Partial", "Explicit Refusal", 
+                      "Logged on to survey, did not complete any items", 
+                      "Unavailable during field period", # v rare
+                      "Break-off", "Not contacted", "Nothing returned") ) |>
+  # collect() |>  here for server/not in-memory db
+  mutate(
+    class = case_when(
+      class == "First-year" ~ "fy",
+      class == "Senior" ~ "sr")) |> 
+  (\(x) replicate(3, x, simplify = FALSE))() |> 
+  set_names(c("pop", "sample", "resp")) |> 
+  # apply sample restrictions (census or random)
+  modify_at("sample", filter, 
+            sample %in% c("Census", "Random sample", "Random oversample")) |>
+  # keep only respondents
+  modify_at("resp", filter, 
+            dispoLabel %in% c("Complete", "Partial"),
+            sample %in% c("Census", "Random sample", "Random oversample")) |> 
+  map(group_by, unitid) |> 
+  map(count, class, enrollment, gender) |> 
+  imap(mutate) |> 
+  map(pivot_wider, names_from = last_col(), values_from = n) |> 
+  reduce(left_join, by = c("unitid", "class", "enrollment", "gender")) |> 
+  replace_na(list(pop = 0, sample = 0, resp = 0)) |> 
+  arrange(unitid, class, enrollment, desc(gender)) |> 
+  collect()
+
+# as an example
+filter(dispositions, gender %in% c("Male", "Female")) |> 
+  head(8) |> 
+  kable()
+```
+
+### Compute Weights and Response Rates
+Weights adjust `resp`ondents to reflect their number in the `pop`ulation and to account for different known response patterns. Weights are given as $w_c = P_c / r_c$. The mean of `weight_scale` is used to adjust `weight_adj`, $adj(w_c) = w_c / mean(w_{c-all})$. If a cell is empty (0), it is treated as missing; between 1 and 4, it's the overall weight; otherwise, just as calculated.
+
+```{r, echo=TRUE}
+# the main output
+weights <- group_by(dispositions, unitid, class) |> 
+  mutate(
+    sample_temp = if_else(resp < 5, 0L, sample),
+    resp_temp = if_else(resp < 5, 0L, resp),
+    weight_scale_overall = sum(sample_temp) / sum(resp_temp),
+    # only calculate weights for cells with at least 5
+    weight_scale = case_when(resp >= 5 ~ sample / resp,
+                        resp < 5 & resp > 0 ~ weight_scale_overall,
+                        resp == 0 ~ NA_real_),
+    weight_adj = weight_scale / weight_scale_overall, 
+    rr = resp / sample * 100,
+    sample_temp = NULL,
+    resp_temp = NULL, 
+    weight_scale_overall = NULL
+  )
+
+head(weights, 8) |> 
+  kable(digits = 2)
+```
+
+### Label and Export Data
+Variable labels are added for export in SPSS and coupled with data in an R-native format. This could similarly be maintained within a database environment or Excel workbook.
+
+```{r, eval=FALSE, echo=TRUE}
+dictionary <- tibble(
+  variable_name = colnames(weights),
+  label = c(
+    "IPEDS unitid", "Class level", "Enrollment status", "Gender", 
+    "Population count", "Sample (subset of pop. within census or random sample) count", 
+    "Respondent (subset of sample with partial or complete responses) count", 
+    "Scale weight (respondent -> sample)", "Adjusted scale weight", "Response rate"
+    )
+  )
+
+# add SPSS attributes and export
+map2(weights, as.list(dictionary$label), `attr<-`, which = "label") |>
+  bind_rows() |>
+  write_sav("NSSE DISPOSITIONS.sav")
+
+# in R native format
+saveRDS(
+  list("dictionary" = dictionary, 
+       "dispositions" = dispositions),
+  "dispo_info.rds"
+)
+```
+
+## Resources
+```{r, echo=FALSE, results='asis'}
+cat("_What resources, definitions, would help here?_")
+```
+ 
+ - The American Association for Public Opinion Research. _2023 Standard Definitions:
+Final Dispositions of Case Codes and Outcome Rates for Surveys. 10th edition._ AAPOR. Retrieved from https://aapor.org/wp-content/uploads/2024/03/Standards-Definitions-10th-edition.pdf  
+
+ - National Survey of Student Engagement. "An Explanation of Weighting in the NSSE Institutional Report." [https://nsse.indiana.edu/nsse/reports-data/weighting.html](https://nsse.indiana.edu/nsse/reports-data/weighting.html)  
+ 
+
+
+
+

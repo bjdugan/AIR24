@@ -1,0 +1,32 @@
+/*Custom CSS Styles*/
+/*
+See https://www.w3schools.com/css/default.asp for examples, or .css from various .rmd, .qmd themes
+*/
+
+h1 {
+  color: #002D6D;
+  text-align: center;
+  font-weight: bolder;
+}
+
+h2 {
+  color: #002D6D;
+  font-weight: bold;
+}
+
+h3 {
+  color: #002D6D;
+}
+
+p {
+  font-size: 16px;
+}
+
+/*
+HighLight JavaScript 
+Changes settings in code blocks
+*/
+.hljs {
+  font-size: 1.5rem;
+}
+

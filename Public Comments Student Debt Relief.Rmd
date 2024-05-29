@@ -174,7 +174,7 @@ top_terms <- tibble(x = replicate(3, pub_com_stm, simplify = FALSE),
 ## Topical Prevalence
 Topical prevalence simply describes how much a document discusses one topic or another. This is kept as the gamma statistic, and is assigned to each document for each topic, and in this case to each author as well. The plot below shows the distribution of gamma values and the top unique `r n_terms` terms and FREX terms associated with each. There are clearly a lot of similar, related terms as one would expect, but it seems topic 3 (the most prevalent) might be about the fairness or lack thereof of the proposed plan to the taxpayer. Topic 5, the second most popular, might have some copy-pasta from the Brookings Institution ("brook", "institut"). From what I can find that organization published a [piece](https://www.brookings.edu/articles/forgiving-student-loans-the-biden-administrations-next-steps/) summarizing but not clearly advocating for any position, so the Institution may have been cited in some other large advocacy effort. Keyword searchers for "Brookings Institution" might quickly reveal if this is the case, but it's neither here nor there. Otherwise, it seems to focus on interest, principle, and delays of payment (forbear, defer), or other terms particular to lending. 
 
-```{r, fig.width=16, fig.height=8, units = "in"}
+```{r, fig.width=16, fig.height=8, units="in"}
 gammas <- tidy(pub_com_stm, "gamma") |> 
   summarize(gamma_avg = mean(gamma), .by = topic) |> 
   left_join(top_terms$beta, by = "topic") |> 
@@ -202,8 +202,10 @@ ggplot(gammas, aes(x = topic, y = gamma_avg)) +
   labs(title = paste("Top", n_terms, "terms in", k, "topics among public comments to Student Debt Relief"),
        x = NULL, 
        y = "Avg. gamma")
-  
+
+#ggsave("top_terms.svg", width = 16, height = 8, units = "in")
 ```
+
 
 ## Examplar documents
 Examining the top terms and most frequent, exclusive terms provides a good start. Looking at exemplar documents, or those high-gamma documents for each topic, helps to contextualize the results. Here I pull one exemplar for each topic, though it is also useful to pull multiple for each. These comments are publicly available, but those from other sources should be reviewed carefully and any necessary redactions made (e.g. `str_replace_all(comment, swear_words, "****")`).

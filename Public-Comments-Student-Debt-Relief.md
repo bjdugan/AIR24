@@ -36,18 +36,16 @@ paste(1:5, ":" , str_trunc(pub_com[sample(nrow(pub_com), 5), ]$comment, 300)) |>
 ```
 
 ```
-## 1 : § 30.83 specifying the Secretary's authority to waive the outstanding balance when a borrower who only has student loans for the borrower's undergraduate studies first entered repayment on or before July 1, 2005 (20 years) or on or before July 1, 2000 (25 years) when a borrower has student loans ...
+## 1 : President Biden has no authority to set his own rules with the Secretary of Education that have not been given to the congress of the U.S. for their approval and their comments and or agreement or disagreement.  The president is a waste of a human being and his dimentia is getting worse.  He is s...
 ## 
-## 2 : I believe you are teach this generation they they do not have to honor their commitments. Soldiers join for the GI bill they do not get to back out on their commitment. Tax payers should not pay for decision and contracts that were signed and committed to. I payed my own school and used my GI bil...
+## 2 : If you can’t cancel the loans cancel the interest. Let us loan borrowers actually put our money back into the economy and not be stuck paying loans off for the rest of our lives. 
+## Money is being spent on everyone else outside of this country so how is there not enough to cancel a good portion of ...
 ## 
-## 3 : I am a 71 yo woman who finds the loan forgiveness program absolutely a slap in the face to all of the tax paying Americans who worked to save for tuition during high school, worked their way through college, then worked for years to pay off their loans.  
-## Receiving financial support with the agre...
+## 3 : I believe this does not go far enough as it does not address the elderly parents that have taken out student loans for their children's education. If the student has graduated over ten years ago and the parent is eligible for social security, that is putting an undue burden on the parent, especia...
 ## 
-## 4 : It is not fair to blue collar laborers to ask that their tax dollars go to pay for the educational loans for people who willfully took out loans promising to pay them back.  This will hurt black and brown people more than any other class of citizens.  I cannot imagine voting for Donald Trump but ...
+## 4 : The president of the United States is NOT to capriciously spend taxpayer money to cancel student loans - it is prohibited by the Constitution.  I would suggest that the current president read the Constitution and adhere to his oath of office (and not just as related to cancelling student loans). ...
 ## 
-## 5 : no to any student loan repayment from tax payers, make the institutions, colleges and universities pay the debts.  those organizations are the direct recipients of the money and have stockpiles of money in their accounts.
-## 
-## in no way should the everyday american be responsible for student loan deb...
+## 5 : It has been said that those with a college degree earn 1 million dollars over their careers of those that do not have a degree. Why do those of us without college degrees need to pay back the more affluent college degree citizens? When I apply for loans, I pay them back, I'd like to think that if...
 ```
 
 There are 5,997 submitted comments ranging from April 22, 2024 to May 20, 2024 per the data, so presumably there is some approval process or delay before comments are posted to the docket.  
@@ -242,6 +240,12 @@ ggplot(gammas, aes(x = topic, y = gamma_avg)) +
 ```
 
 ![](Public-Comments-Student-Debt-Relief_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+```r
+ggsave("top_terms.svg", width = 16, height = 8, units = "in")
+```
+
+![]("top_terms.svg")
 
 ## Examplar documents
 Examining the top terms and most frequent, exclusive terms provides a good start. Looking at exemplar documents, or those high-gamma documents for each topic, helps to contextualize the results. Here I pull one exemplar for each topic, though it is also useful to pull multiple for each. These comments are publicly available, but those from other sources should be reviewed carefully and any necessary redactions made (e.g. `str_replace_all(comment, swear_words, "****")`).

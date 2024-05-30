@@ -247,7 +247,7 @@ Negative values (red) indicate higher education institutional actors favor the t
 
 This uses the top `r n_terms` terms from both groups in each topic. For more than a few topics, it can be better to plot one at a time or only those of interest. Overlapping terms or terms more in common are situated near the central axis, in grey; terms used exclusively by one group or another are indicated with daggers (to avoid confusion that might arise with using asterisks, e.g. "educ*" appearing like a  wildcard).
 
-```{r, fig.height=10, fig.width=10}
+```{r, fig.height=20, fig.width=10}
 
 x <- left_join(gammas, 
   tidy(pub_com_stm, "beta") |>
@@ -262,7 +262,7 @@ x <- left_join(gammas,
   replace_na(list(g0 = 0, g1 = 0)) |> 
   group_by(term) |> 
   mutate(
-    term = if_else(is.na(log2ratio), paste0(term, "†"), term),
+    term = if_else(is.na(log2ratio), paste0(term, "^"), term),
     topic = factor(topic),
     log2ratio = case_when(
       is.na(log2ratio) & g0 == 0 ~ g1, 
@@ -279,7 +279,7 @@ ggplot(x, aes(x = log2ratio, y = y, color = log2ratio)) +
   geom_vline(aes(xintercept = 0), linetype = 3) + 
   geom_text(aes(label = term), 
             show.legend = FALSE, 
-            check_overlap = TRUE) + 
+            check_overlap = FALSE) + 
   theme_minimal(base_size = 14) + 
   theme(
     panel.grid.major.y = element_blank(),
@@ -293,7 +293,7 @@ ggplot(x, aes(x = log2ratio, y = y, color = log2ratio)) +
                   paste0(rep(" ", 5), collapse = ""),
                   "→ Students"),
        y = NULL, 
-       caption = "Note: vertical alignment is random. Terms unique to one group denoted with †."
+       caption = "Note: vertical alignment is random. Terms unique to one group denoted with ^."
   ) +
   scale_x_continuous(limits = c(-2, 2)) + 
   scale_color_gradient2(mid = "grey") + 

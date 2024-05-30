@@ -36,16 +36,18 @@ paste(1:5, ":" , str_trunc(pub_com[sample(nrow(pub_com), 5), ]$comment, 300)) |>
 ```
 
 ```
-## 1 : President Biden has no authority to set his own rules with the Secretary of Education that have not been given to the congress of the U.S. for their approval and their comments and or agreement or disagreement.  The president is a waste of a human being and his dimentia is getting worse.  He is s...
+## 1 : I applied for The $20,000 Debt Relief Cancellation and uncertain If I can still be approved to receive one-time student loan debt relief. Will I still receive relief? Please assist as I have recently filed Bankruptcy. I am a Mother now and my partner is not working. I am struggling TREMENDOUSLY w...
 ## 
-## 2 : If you can’t cancel the loans cancel the interest. Let us loan borrowers actually put our money back into the economy and not be stuck paying loans off for the rest of our lives. 
-## Money is being spent on everyone else outside of this country so how is there not enough to cancel a good portion of ...
+## 2 : Having some type of debt relief program is essential to the a lot of people future. I moved to another state to further my education and the day after I moved my last parent suddenly passed from cardiac arrest. I was 20 and he was financially supporting me and even had co-signed a loan for school...
 ## 
-## 3 : I believe this does not go far enough as it does not address the elderly parents that have taken out student loans for their children's education. If the student has graduated over ten years ago and the parent is eligible for social security, that is putting an undue burden on the parent, especia...
+## 3 : You must first enable the government to control the governed; and in the next place, oblige it to control itself.”
+## ― James Madison
 ## 
-## 4 : The president of the United States is NOT to capriciously spend taxpayer money to cancel student loans - it is prohibited by the Constitution.  I would suggest that the current president read the Constitution and adhere to his oath of office (and not just as related to cancelling student loans). ...
+## Restore constitutional bankruptcy protection to the student loan process if you truly wish to safeguard the taxpayers' money.
 ## 
-## 5 : It has been said that those with a college degree earn 1 million dollars over their careers of those that do not have a degree. Why do those of us without college degrees need to pay back the more affluent college degree citizens? When I apply for loans, I pay them back, I'd like to think that if...
+## 4 : Based on the proposal, I totally agree.
+## 
+## 5 : Please approve this relief.
 ```
 
 There are 5,997 submitted comments ranging from April 22, 2024 to May 20, 2024 per the data, so presumably there is some approval process or delay before comments are posted to the docket.  
@@ -241,11 +243,6 @@ ggplot(gammas, aes(x = topic, y = gamma_avg)) +
 
 ![](Public-Comments-Student-Debt-Relief_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
-```r
-ggsave("top_terms.svg", width = 16, height = 8, units = "in")
-```
-
-![]("top_terms.svg")
 
 ## Examplar documents
 Examining the top terms and most frequent, exclusive terms provides a good start. Looking at exemplar documents, or those high-gamma documents for each topic, helps to contextualize the results. Here I pull one exemplar for each topic, though it is also useful to pull multiple for each. These comments are publicly available, but those from other sources should be reviewed carefully and any necessary redactions made (e.g. `str_replace_all(comment, swear_words, "****")`).
@@ -306,7 +303,7 @@ x <- left_join(gammas,
   replace_na(list(g0 = 0, g1 = 0)) |> 
   group_by(term) |> 
   mutate(
-    term = if_else(is.na(log2ratio), paste0(term, "†"), term),
+    term = if_else(is.na(log2ratio), paste0(term, "^"), term),
     topic = factor(topic),
     log2ratio = case_when(
       is.na(log2ratio) & g0 == 0 ~ g1, 
@@ -323,7 +320,7 @@ ggplot(x, aes(x = log2ratio, y = y, color = log2ratio)) +
   geom_vline(aes(xintercept = 0), linetype = 3) + 
   geom_text(aes(label = term), 
             show.legend = FALSE, 
-            check_overlap = TRUE) + 
+            check_overlap = FALSE) + 
   theme_minimal(base_size = 14) + 
   theme(
     panel.grid.major.y = element_blank(),
@@ -337,7 +334,7 @@ ggplot(x, aes(x = log2ratio, y = y, color = log2ratio)) +
                   paste0(rep(" ", 5), collapse = ""),
                   "→ Students"),
        y = NULL, 
-       caption = "Note: vertical alignment is random. Terms unique to one group denoted with †."
+       caption = "Note: vertical alignment is random. Terms unique to one group denoted with ^."
   ) +
   scale_x_continuous(limits = c(-2, 2)) + 
   scale_color_gradient2(mid = "grey") + 
